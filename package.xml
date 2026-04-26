@@ -1,0 +1,40 @@
+<?xml version="1.0"?>  <!-- 指定xml的版本為1.0 -->
+
+<!-- xml的模型宣告，指定XSD模式檔案的URL，用於驗證xml的檔案 -->
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+
+<!-- ROS2套件版本為3 -->
+<package format="3">
+  <!-- 套件名稱 -->
+  <name>car</name>
+  <!-- 版本標號，實際發布前更新為適合的版本編號 -->
+  <version>0.0.0</version>
+  <!-- 套件描述 -->
+  <description>TODO: Package description</description>
+  <!-- 維護者資訊 -->
+  <maintainer email="andy050629@gmail.com">andy</maintainer>
+  <!-- 許可證宣告 -->
+  <license>Apache-2.0</license>
+  
+  <!-- 依賴項目 -->
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <!-- 測試相依項 -->
+  <!-- 用於確保原始程式碼檔案包含有效版權宣告 -->
+  <test_depend>ament_copyright</test_depend>
+  <!-- Python程式品質檢查工具，遵循PEP8風格違規 -->
+  <test_depend>ament_flake8</test_depend>
+  <!-- 文字字串檢查工具，確保遵循PEP257的文件字串約定 -->
+  <test_depend>ament_pep257</test_depend>
+  <!-- Python測試框架，用於撰寫和執行測試 -->
+  <test_depend>python3-pytest</test_depend>
+
+  <!-- 匯出資訊 -->
+  <export>
+    <!-- 建構類型，指定該檔案為python套件-->
+    <build_type>ament_python</build_type>
+  </export>
+</package>

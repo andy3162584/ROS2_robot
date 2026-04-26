@@ -1,0 +1,63 @@
+slam_toolbox:
+  ros__parameters:
+
+    # --- 1. 坐標系與話題設定 ---
+    odom_frame: odom
+    base_frame: base_link
+    map_frame: map
+    scan_topic: /scan
+    use_imu: true
+    imu_topic: /imu/data_raw
+
+    # --- 2. 效能與時間對齊 (解決單機運行延遲) ---
+    use_sim_time: false
+    
+    # transform_timeout: 容許座標轉換 (TF) 延遲的時間。
+    # 數值大一點 (2.0) 可以避免因 Pi 5 CPU 忙碌產生的「Queue is full」報錯。
+    transform_timeout: 2.0          
+    tf_buffer_duration: 30.0        
+    lookup_transform_timeout: 0.2
+    
+    # throttle_scans: 稀釋雷達數據。
+    # 設定為 2 或 3：代表每 2-3 幀才處理一幀。這能顯著降低 CPU 負擔並防止地圖重疊。
+    throttle_scans: 3               
+    scan_buffer_size: 50            
+
+    # --- 3. 建圖精度與模式 ---
+    mode: mapping
+    # resolution: 地圖解析度 (公尺)。
+    # 0.08m 是效能與精度的平衡點。若要更細緻可改回 0.05。
+    resolution: 0.06                
+    map_update_interval: 2.0   
+    coarse_search_angle_offset: 0.7   
+    fine_search_angle_offset: 0.1        
+    coarse_angle_resolution: 0.02   
+    fine_angle_resolution: 0.005      
+    minimum_score: 0.1
+    
+    # --- 4. 運動門檻 (決定何時更新地圖) ---
+    # 調高這兩個值 (如 0.3) 可以防止機器人在原地微幅抖動時把牆壁磨厚。
+    minimum_travel_distance: 0.05    # 機器人位移超過 30cm 才更新一次地圖
+    minimum_travel_heading: 0.05     # 機器人轉向超過約 17 度才更新一次地圖
+    
+    # --- 5. 權重與修正邏輯 (核心修正區) ---
+    # angle_variance_penalty: 對里程計角度誤差的懲罰。
+    # 因為你的右輪仍可能有微小偏差，將此值調高 (3.0 ~ 5.0)，
+    # 會讓 SLAM 更相信「雷達看到的牆壁形狀」來校正位置，而非死聽里程計。
+    angle_variance_penalty: 7.0
+    position_variance_penalty: 1.0
+    link_match_maximum_distance: 0.5  
+
+    # --- 6. 回環檢測 (Loop Closing) ---
+    # 當回到走過的地方時，自動把歪掉的地圖拉正。
+    do_loop_closing: true
+    loop_search_maximum_distance: 5.0 # 搜尋附近 10 公尺內的已知地圖進行對齊
+    loop_match_minimum_chain_size: 2
+    loop_match_score: 0.3             # 匹配分數，越低越容易觸發對齊 (但也可能對錯)
+    
+    # --- 7. 優化求解器設定 (保持 Ceres) ---
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_loss_function: None

@@ -1,0 +1,277 @@
+<?xml version="1.0"?>
+<robot name="robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<!-- title	:patrol_robot.xacro -->
+<!-- Author	:Chen Bo An 		-->
+<!-- Date 	:2026-03-15			-->
+
+<!--==========================================-->
+<!-- 定義XACRO清單 -->
+	<!-- 參數 -->
+	<xacro:property name="PI" value="3.14159"/>
+	<!-- 車體參數 -->
+	<xacro:property name="base_length" value="0.4"/>
+	<xacro:property name="base_width" value="0.306"/>
+	<xacro:property name="base_height" value="0.3"/>
+	<xacro:property name="base_mass" value="3.0"/>
+	<!-- 輪子參數 -->
+	<xacro:property name="wheel_radius" value="0.0425"/>
+	<xacro:property name="wheel_width" value="0.0334"/>
+	<xacro:property name="wheel_mass" value="0.2"/>
+	<!-- 雷達參數 -->
+	<xacro:property name="laser_radius" value="0.035"/>
+	<xacro:property name="laser_width" value="0.03"/>
+	<xacro:property name="laser_mass" value="0.2"/>
+
+	<!-- 輪子巨集 -->
+	<xacro:macro name="wheel_func" params="wheel_name x_offset y_offset">
+		<link name="${wheel_name}">
+			<!-- 沒有輪子外觀 -->
+			<!-- 碰撞屬性 -->
+			<collision>
+				<origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+				<geometry>
+					<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+				</geometry>
+			</collision>
+			
+			<!-- 慣性屬性 -->
+			<inertial>
+				<!-- 質量 -->
+				<mass value="${wheel_mass}"/>
+				<!-- 慣性矩 -->
+				<inertia 
+					ixx="${1/12 * wheel_mass * (3 * wheel_radius**2 + wheel_width**2)}" ixy="0" ixz="0"
+					iyy="${1/12 * wheel_mass * (3 * wheel_radius**2 + wheel_width**2)}" iyz="0"
+					izz="${1/2 * wheel_mass * wheel_radius**2}"/>
+			</inertial>
+		</link>
+
+		<!-- 將輪子與車體連結 -->
+		<joint name="${wheel_name}_joint" type="continuous">
+			<parent link="base_link"/>
+			<child link="${wheel_name}"/>
+			<origin xyz="${x_offset} ${y_offset} ${wheel_radius}" rpy="0 0 0"/>
+			<axis xyz="0 1 0"/>
+		</joint>
+	</xacro:macro>
+
+<!--==========================================-->
+<!-- 建立模型 -->
+	<!-- TF基準點 -->
+	<link name="base_link"/>
+
+	<!-- 車子底盤 -->
+	<link name="chassis">
+		<!-- 外觀屬性 -->
+		<visual>
+			<!-- 匯入車子模型 -->
+			<geometry>
+				<mesh filename="package://patrol_control/meshes/andy2025S.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<!-- 設定原點及旋轉 -->
+			<origin xyz="0.215 -0.195 -0.22" rpy="${PI/2} 0 ${PI}"/>
+		</visual>
+		
+		<!-- 碰撞屬性 -->
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 ${PI}"/>
+			<!-- 碰撞箱大小 -->
+			<geometry>
+				<box size="${base_length} ${base_width} ${base_height}"/>
+			</geometry>
+		</collision>
+		
+		<!-- 慣性屬性 -->
+		<inertial>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<!-- 質量 -->
+			<mass value="${base_mass}"/>
+			<!-- 慣性矩 -->
+			<inertia 
+				ixx="${1/12 * base_mass * (base_height**2 + base_width**2)}" ixy="0" ixz="0"
+				iyy="${1/12 * base_mass * (base_length**2 + base_height**2)}" iyz="0"
+				izz="${1/12 * base_mass * (base_length**2 + base_width**2)}"/>
+		</inertial>
+	</link>
+
+	<!-- 將車子外觀建立在基準點上 -->
+	<joint name="base_joint" type="fixed">
+		<parent link="base_link"/>
+		<child link="chassis"/>
+		<origin xyz="0 0 0.22" rpy="0 0 0"/>
+	</joint>
+
+	<!-- 建立四顆輪子 -->
+	<xacro:wheel_func wheel_name="left_front_wheel"  x_offset="0.175"  y_offset="0.18"/>
+	<xacro:wheel_func wheel_name="right_front_wheel" x_offset="0.175"  y_offset="-0.18"/>
+	<xacro:wheel_func wheel_name="left_back_wheel"   x_offset="-0.175" y_offset="0.18"/>
+	<xacro:wheel_func wheel_name="right_back_wheel"  x_offset="-0.175" y_offset="-0.18"/>
+
+	<!-- 雷達 -->
+	<link name="laser_frame">
+		<!-- 慣性屬性 -->
+		<inertial>
+			<!-- 質量 -->
+			<mass value="${laser_mass}"/>
+			<!-- 慣性矩 -->
+			<inertia 
+				ixx="${1/12 * laser_mass * (3 * laser_radius**2 + laser_width**2)}" ixy="0" ixz="0"
+				iyy="${1/12 * laser_mass * (3 * laser_radius**2 + laser_width**2)}" iyz="0"
+				izz="${1/2 * laser_mass * laser_radius**2}"/>
+		</inertial>
+	</link>
+
+	<!-- 將雷達與車體連結 -->
+	<joint name="laser_frame_joint" type="fixed">
+		<parent link="chassis"/>
+		<child link="laser_frame"/>
+		<origin xyz="0 0 0.1" rpy="0 0 ${PI}"/>
+	</joint>
+
+	<!-- IMU -->
+	<link name="imu_link">
+		<inertial>
+			<mass value="0.01"/>
+			<inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+		</inertial>
+	</link>
+
+	<!--將IMU與車底連結 -->
+	<joint name="imu_joint" type="fixed">
+		<parent link="base_link"/>
+		<child link="imu_link"/>
+		<origin xyz="0.15 0 0.12" rpy="0 0 0"/>
+	</joint>
+
+
+<!--=======================================================-->
+<!-- Gazebo 控制與物理 -->
+	<!-- 輪子參數設定 -->
+	<xacro:macro name="wheel_gazebo" params="wheel_name">
+		<gazebo reference="${wheel_name}">
+			<!-- 前進後退摩擦力 -->
+			<mu1 value="0.6"/>
+			<!-- 橫向摩擦力 -->
+			<mu2 value="0.6"/>
+			<!-- 接觸硬度 -->
+			<kp value="1000000.0"/>
+			<!-- 接觸阻尼 -->
+			<kd value="1.0"/>
+			<material>Gazebo/Black</material>
+		</gazebo>
+	</xacro:macro>
+	
+	<!-- 設定每顆輪子的參數 -->
+	<xacro:wheel_gazebo wheel_name="right_front_wheel"/>
+	<xacro:wheel_gazebo wheel_name="right_back_wheel"/>
+	<xacro:wheel_gazebo wheel_name="left_front_wheel"/>
+	<xacro:wheel_gazebo wheel_name="left_back_wheel"/>
+
+	<!-- 設定車體顏色 -->
+	<gazebo reference="chassis">
+		<material>Gazebo/Red</material>
+	</gazebo>
+
+	<!-- 控制器套件 -->
+	<gazebo>
+		<!-- 加載差速驅動檔案 -->
+		<plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+			<!-- 控制指令話題 -->
+			<topic>/cmd_vel</topic>
+			
+			<!-- 告訴插件關節受力位置 -->
+			<left_joint>left_front_wheel_joint</left_joint>
+			<left_joint>left_back_wheel_joint</left_joint>
+			<right_joint>right_front_wheel_joint</right_joint>
+			<right_joint>right_back_wheel_joint</right_joint>
+			
+			<!--左右輪子之間的距離及輪子直徑 -->
+			<wheel_separation>0.35</wheel_separation>
+			<wheel_radius>${wheel_radius}</wheel_radius>
+			
+			<!-- 輪子最大馬力 -->
+			<max_wheel_torque>20</max_wheel_torque>
+			
+			<!-- 加速度限制 -->
+			<max_linear_acceleration>1.0</max_linear_acceleration>
+			
+			<!-- 里程計話題與坐標系名稱 -->
+			<odom_topic>odom</odom_topic>
+			<frame_id>odom</frame_id>
+			
+			<!-- 機器人底盤坐標系 -->
+			<child_frame_id>base_link</child_frame_id>
+			
+			<!-- 是否發布TF與里程計資料 -->
+			<publish_odom>true</publish_odom>
+			<publish_odom_tf>false</publish_odom_tf>
+			<publish_wheel_tf>false</publish_wheel_tf>
+			
+			<!-- 更新頻率 -->
+			<update_rate>30</update_rate>
+		</plugin>
+		
+		<!-- 將數據發佈到topic -->
+		<plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+			<topic>joint_states</topic>
+			<update_rate>30</update_rate>
+		</plugin>
+	</gazebo>
+
+	<!-- 光達套件 -->
+	<gazebo reference="laser_frame">
+        <sensor name="rplidar_a1" type="gpu_lidar">
+            <pose>0 0 0 0 0 0</pose>
+            <topic>scan</topic>
+			<frame_id>laser_frame</frame_id>
+			<gz_frame_id>laser_frame</gz_frame_id>
+			
+            <update_rate>10</update_rate>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>360</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-3.14159</min_angle>
+                        <max_angle>3.14159</max_angle>
+                    </horizontal>
+                </scan>
+                <range>
+                    <min>0.15</min>
+                    <max>12.0</max>
+                </range>
+            </ray>
+            <always_on>1</always_on>
+            <visualize>false</visualize>
+        </sensor>
+    </gazebo>
+
+	<!-- IMU -->
+	<gazebo>
+  		<plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
+		</plugin>
+	</gazebo>
+
+	<gazebo reference="imu_link">
+		<sensor name="mpu6050_imu" type="imu">
+			<always_on>true</always_on>
+			<update_rate>100</update_rate>
+			<visualize>true</visualize>
+			<topic>imu/data</topic>
+			<gz_frame_id>imu_link</gz_frame_id> 
+		
+			<imu>
+				<angular_velocity>
+					<x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
+					<y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
+					<z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
+				</angular_velocity>
+				<linear_acceleration>
+					<x><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></x>
+					<y><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></y>
+					<z><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></z>
+				</linear_acceleration>
+			</imu>
+		</sensor>
+	</gazebo>
+</robot>
